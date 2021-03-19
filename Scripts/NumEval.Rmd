@@ -1,0 +1,291 @@
+---
+title: "NumericalEval"
+author: "Sofía Meléndez Cartagena"
+date: "2/23/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Libraries
+```{r}
+library(tidyverse)
+```
+
+```{r}
+library(PilasPack)
+```
+
+```{r}
+library(lubridate)
+```
+
+
+## Data
+
+```{r}
+Datos1_all<-read.delim("../Data/2021_02_17_Data.csv", header = TRUE, sep = ",", row.names = 1)
+
+head(Datos1_all)
+```
+
+```{r}
+head(LabTags)
+```
+
+## Calculate Variables of interest
+
+```{r}
+All_test <- testApiToDates(DataFrame = Datos1_all)
+
+head(All_test)
+```
+
+```{r}
+All_test <- testApiCalculateTurnaround(All_test)
+
+head(All_test)
+```
+
+```{r}
+All_test <- testApiMonthAsColumn(All_test)
+
+head(All_test)
+```
+
+
+```{r}
+All_test <- All_test %>%
+  filter(createdAtDate > ymd("2020-03-9"))
+```
+
+
+
+```{r}
+All_test <- All_test %>%
+  filter(as.numeric(TatUploadSample) > 0)
+```
+
+
+
+## Explore Col
+
+```{r}
+colnames(All_test)
+```
+
+## Isolate Numerical Variables
+
+```{r}
+TatsUpload <- All_test %>%
+  select(processedByEntity.name,TatReportSample,TatUploadReport, TatUploadSample, createdAtDate) %>%
+  mutate(createdAtDate = month(createdAtDate, label = TRUE))%>%
+  mutate(TatReportSample = as.numeric(TatReportSample)) %>%
+  mutate(TatUploadReport = as.numeric(TatUploadReport)) %>%
+  mutate(TatUploadSample = as.numeric(TatUploadSample)) %>%
+  add_column(Tags = "NA")%>%
+  mutate(Tags = as.character(Tags))
+
+TatsUpload
+```
+
+## Count per Var
+
+
+
+```{r}
+ for(i in 1:length(LabTags$Nombre)){
+     TatsUpload[TatsUpload$processedByEntity.name %in% LabTags[i,1],6] <- LabTags[i,3]
+ }
+
+TatsUpload[!(TatsUpload$processedByEntity.name %in% LabTags[,1]),6] <-"Other"
+
+TatsUpload
+```
+
+
+
+
+
+## Graph
+
+```{r}
+TatsUpload %>%
+  select(Tags, TatReportSample)%>%
+  group_by(Tags)%>%
+  filter(TatReportSample < 360)%>%
+  filter(TatReportSample > 0)%>%
+  summarise(meanN = mean(TatReportSample), SDEN = sd(TatReportSample)/sqrt(length(TatReportSample)))%>%
+  ggplot(aes(x = Tags, y = meanN))+
+  geom_point()+
+  geom_errorbar(aes(ymin= meanN-SDEN, ymax=meanN+SDEN))+
+  labs(y = "Mean Lags + SEM", x = "Lab Tags", title = "Lag Between Date Sampled and Date Reported")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90, vjust  =  0.1))
+
+```
+
+```{r}
+TatsUpload %>%
+  select(Tags, TatReportSample)%>%
+  group_by(Tags)%>%
+  filter(TatReportSample < 360)%>%
+  filter(TatReportSample > 0)%>%
+  summarise(meanN = mean(TatReportSample), SDEN = sd(TatReportSample))%>%
+  ggplot(aes(x = Tags, y = meanN))+
+  geom_point()+
+  geom_errorbar(aes(ymin= meanN-SDEN, ymax=meanN+SDEN))+
+  labs(y = "Mean Lags + SD", x = "Lab Tags", title = "Lag Between Date Sampled and Date Reported")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90, vjust  =  0.1))
+
+```
+
+
+```{r}
+TatsUpload %>%
+  select(Tags, TatReportSample, createdAtDate)%>%
+  group_by(Tags, createdAtDate)%>%
+  filter(TatReportSample < 360)%>%
+  filter(TatReportSample > 0)%>%
+  summarise(meanN = mean(TatReportSample), SDEN = sd(TatReportSample)/sqrt(length(TatReportSample)))%>%
+  ggplot(aes(x = Tags, y = meanN))+
+  geom_point()+
+  geom_errorbar(aes(ymin= meanN-SDEN, ymax=meanN+SDEN))+
+  labs(y = "Mean Lags + SEM", x = "Lab Tags", title = "Lag Between Date Sampled and Date Reported")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90, vjust  =  0.1))+
+  facet_wrap(~createdAtDate)
+
+```
+
+```{r}
+TatsUpload %>%
+  select(Tags, TatReportSample, createdAtDate)%>%
+  group_by(Tags, createdAtDate)%>%
+  filter(TatReportSample < 360)%>%
+  filter(TatReportSample > 0)%>%
+  summarise(meanN = mean(TatReportSample), SDEN = sd(TatReportSample))%>%
+  ggplot(aes(x = Tags, y = meanN))+
+  geom_point()+
+  geom_errorbar(aes(ymin= meanN-SDEN, ymax=meanN+SDEN))+
+  labs(y = "Mean Lags + SD", x = "Lab Tags", title = "Lag Between Date Sampled and Date Reported")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90, vjust  =  0.1))+
+  facet_wrap(~createdAtDate)
+
+```
+
+```{r}
+TatsUpload %>%
+  select(Tags, TatUploadReport)%>%
+  group_by(Tags)%>%
+  filter(TatUploadReport < 360)%>%
+  filter(TatUploadReport > 0)%>%
+  summarise(meanN = mean(TatUploadReport), SDEN = sd(TatUploadReport)/sqrt(length(TatUploadReport)))%>%
+  ggplot(aes(x = Tags, y = meanN))+
+  geom_point()+
+  geom_errorbar(aes(ymin= meanN-SDEN, ymax=meanN+SDEN))+
+  labs(y = "Mean Lags + SEM", x = "Lab Tags", title = "Lag Between Date Reported and Date Upload")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90, vjust  =  0.1))
+
+```
+
+```{r}
+TatsUpload %>%
+  select(Tags, TatUploadReport)%>%
+  group_by(Tags)%>%
+  filter(TatUploadReport < 360)%>%
+  filter(TatUploadReport > 0)%>%
+  summarise(meanN = mean(TatUploadReport), SDEN = sd(TatUploadReport))%>%
+  ggplot(aes(x = Tags, y = meanN))+
+  geom_point()+
+  geom_errorbar(aes(ymin= meanN-SDEN, ymax=meanN+SDEN))+
+  labs(y = "Mean Lags + SD", x = "Lab Tags", title = "Lag Between Date Reported and Date Upload")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90,vjust  =  0.1))
+
+```
+
+```{r}
+TatsUpload %>%
+  select(Tags, TatUploadReport, createdAtDate)%>%
+  group_by(Tags, createdAtDate)%>%
+  filter(TatUploadReport < 360)%>%
+  filter(TatUploadReport > 0)%>%
+  summarise(meanN = mean(TatUploadReport), SDEN = sd(TatUploadReport)/sqrt(length(TatUploadReport)))%>%
+  ggplot(aes(x = Tags, y = meanN))+
+  geom_point()+
+  geom_errorbar(aes(ymin= meanN-SDEN, ymax=meanN+SDEN))+
+  labs(y = "Mean Lags + SEN", x = "Lab Tags", title = "Lag Between Date Sampled and Date Reported")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90,vjust  =  0.1))+
+  facet_wrap(~createdAtDate)
+
+```
+
+```{r}
+TatsUpload %>%
+  select(Tags, TatUploadReport, createdAtDate)%>%
+  group_by(Tags, createdAtDate)%>%
+  filter(TatUploadReport < 360)%>%
+  filter(TatUploadReport > 0)%>%
+  summarise(meanN = mean(TatUploadReport), SDEN = sd(TatUploadReport))%>%
+  ggplot(aes(x = Tags, y = meanN))+
+  geom_point()+
+  geom_errorbar(aes(ymin= meanN-SDEN, ymax=meanN+SDEN))+
+  labs(y = "Mean Lags + SD", x = "Lab Tags", title = "Lag Between Date Sampled and Date Reported")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90,vjust  =  0.1))+
+  facet_wrap(~createdAtDate)
+
+```
+## NA analysis
+
+```{r}
+ResagoVacio<-TatsUpload[which(is.na(TatsUpload$TatReportSample)),]
+```
+
+
+```{r}
+ggplot(ResagoVacio, aes(x = Tags, y = processedByEntity.name, fill = createdAtDate))+
+  geom_tile()+
+  labs( y = "Laboratorio Especifico", x = "Tag", title = "Laboratorios con cambo de rezago vacio")+
+  theme_bw()+
+  theme(axis.text.y = element_text(size = 4))
+```
+
+```{r}
+ggplot(ResagoVacio, aes(x = Tags,  fill = createdAtDate))+
+  geom_bar()+
+  labs(y = "Frecuencia", x = "Categoria de Laboratorio", title = "Frecuencia de rezagos vacios")+
+  theme_bw()
+
+```
+
+## Evaluate Tats in reference to anything more than 1 year
+
+
+```{r}
+All_test %>%
+  select(processedByEntity.name, orderedByEntity.name, sampleCollectedDate,createdAtDate, orderResult.reportedDate, TatReportSample,TatUploadReport, TatUploadSample, patient.patientId)%>%
+  mutate(TatReportSample = as.numeric(TatReportSample)) %>%
+  mutate(TatUploadReport = as.numeric(TatUploadReport)) %>%
+  mutate(TatUploadSample = as.numeric(TatUploadSample)) %>%
+  filter(TatReportSample > 365)%>%
+  arrange(desc(TatReportSample))%>%
+  group_by(processedByEntity.name, orderedByEntity.name)%>%
+  count()%>%
+  ggplot(aes(x = processedByEntity.name, y = orderedByEntity.name, fill = n))+
+  geom_tile()+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90, size = 6, vjust  =  0.1), axis.text.y = element_text(size = 5))+
+  labs(title = "Sample Dates From before 2020")
+
+#ggsave("../Outputs/MuestreosImposibles.png", width = 25, height = 25, units = "cm")
+
+```
+

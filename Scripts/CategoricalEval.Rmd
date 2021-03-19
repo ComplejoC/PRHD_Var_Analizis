@@ -1,0 +1,309 @@
+---
+title: "Evaluacion Categorica"
+author: "Sofía Meléndez Cartagena"
+date: "2/17/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Libraries
+```{r}
+library(tidyverse)
+```
+```{r}
+library(PilasPack)
+```
+
+```{r}
+library(lubridate)
+```
+
+
+## Data
+
+```{r}
+Datos1_all<-read.delim("../Data/2021_03_19_Data.csv", header = TRUE, sep = ",", row.names = 1)
+
+head(Datos1_all)
+```
+
+```{r}
+head(LabTags)
+```
+
+## Calculate Variables of interest
+
+```{r}
+All_test <- testApiToDates(DataFrame = Datos1_all)
+
+head(All_test)
+```
+
+```{r}
+All_test <- testApiCalculateTurnaround(All_test)
+
+head(All_test)
+```
+
+```{r}
+All_test <- testApiMonthAsColumn(All_test)
+
+head(All_test)
+```
+
+```{r}
+DataUpBeforeMarch <- All_test %>%
+  filter(createdAtDate < ymd("2020-03-9"))
+```
+
+```{r}
+All_test <- All_test %>%
+  filter(createdAtDate > ymd("2020-03-9"))
+```
+
+```{r}
+NegTat <- All_test %>%
+  filter(as.numeric(TatUploadSample) < 0)
+```
+
+```{r}
+All_test <- All_test %>%
+  filter(as.numeric(TatUploadSample) > 0)
+```
+
+
+
+## Explore Col
+
+```{r}
+colnames(All_test)
+```
+
+```{r}
+IsUpCount <-All_test %>%
+  select(isUpdated)%>%
+  group_by(isUpdated)%>%
+  count()
+IsUpCount
+```
+
+```{r}
+ggplot(IsUpCount, aes(x = isUpdated, y = n))+
+  geom_col()+
+  labs(title = "Number of categories in IsUpdated", x = "Categories", y = "Number of test in Category")+
+  theme_bw()
+
+ggsave("../Outputs/Iscount.png")
+```
+
+
+```{r}
+IsElecCount <-All_test %>%
+  select(isElectronic)%>%
+  group_by(isElectronic)%>%
+  count()
+
+IsElecCount
+```
+
+```{r}
+ggplot(IsElecCount, aes(x = isElectronic, y = n))+
+  geom_col()+
+  labs(title = "Number of categories in IsElectronic", x = "Categories", y = "Number of test in Category")+
+  theme_bw()
+ggsave("../Outputs/IsElect.png")
+```
+
+```{r}
+TestTypeCount <- All_test %>%
+  select(testType)%>%
+  group_by(testType)%>%
+  count()
+TestTypeCount
+```
+
+```{r}
+ggplot(TestTypeCount, aes(x = testType, y = log(n), fill = testType))+
+  geom_col()+
+  labs(title = "Number of categories in testType", x = "Categories", y = "Number of test in Category (Log Transfomation)")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
+
+ggsave("../Outputs/TestTypeGlob.png")
+```
+
+
+```{r}
+TestTypeCountMonthly <- All_test %>%
+  select(testType, UploadMonth)%>%
+  group_by(testType, UploadMonth)%>%
+  count()
+TestTypeCountMonthly
+```
+
+```{r}
+ggplot(TestTypeCountMonthly, aes(x = testType, y = log(n), fill = testType))+
+  geom_col()+
+  labs(title = "Number of categories in testType", x = "Categories", y = "Number of test in Category (Log Transfomation)")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5), axis.title.y = element_text(size = 8.5))+
+  facet_wrap(~UploadMonth)
+ggsave("../Outputs/TestTypeMonthly.png")
+```
+
+```{r}
+ResultCount <- All_test %>%
+  select(orderResult.result)%>%
+  group_by(orderResult.result)%>%
+  count()
+ResultCount
+```
+```{r}
+ResultTags <- cbind(ResultCount, Tags = c("Empty", "Negative", "Positive", "Invalid", "Invalid", "Negative", "Negative", "Invalid", "Invalid", "Invalid", "Positive", "Positive", "Positive", "Positive", "Positive", "Positive", "Negative", "Positive", "Positive"))
+
+ResultTags
+```
+
+```{r}
+write.csv(ResultTags, "../Outputs/ResultTags.csv")
+```
+
+
+```{r}
+SInResultado<-All_test %>%
+  filter(orderResult.result == "")
+
+#write.csv(SInResultado, "../Outputs/SinResultado.csv")
+```
+
+```{r}
+ggplot(ResultCount, aes(x = orderResult.result, y = log(n), fill = orderResult.result))+
+  geom_col()+
+  labs(title = "Number of categories in orderResult.result", x = "Categories", y = "Number of test in Category (Log Transfomation)")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5), axis.title = element_text(size = 5.9), plot.title = element_text(size = 12), legend.key.size = unit(.2, 'cm'), legend.text = element_text(size =5.6))
+
+ggsave("../Outputs/TestResults.png")
+```
+
+```{r}
+ggplot(ResultCount, aes(x = orderResult.result, y = n, fill = orderResult.result))+
+  geom_col()+
+  labs(title = "Number of categories in orderResult.result", x = "Categories", y = "Number of test in Category")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90), axis.title = element_text(size = 5.9), plot.title = element_text(size = 12), legend.key.size = unit(.2, 'cm'), legend.text = element_text(size =5.6))
+
+```
+
+```{r}
+ResultCountMonthly <- All_test %>%
+  select(orderResult.result, UploadMonth)%>%
+  group_by(orderResult.result, UploadMonth)%>%
+  count()
+ResultCountMonthly
+```
+
+
+```{r}
+ggplot(ResultCountMonthly, aes(x = orderResult.result, y = log(n), fill = orderResult.result))+
+  geom_col()+
+  labs(title = "Number of categories in orderResult.result", x = "Categories", y = "Number of test in Category (Log Transfomation)")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90, vjust = .5, size = 4.4) , axis.title = element_text(size = 5.9), plot.title = element_text(size = 12), legend.key.size = unit(.2, 'cm'), legend.text = element_text(size =5.6))+  
+  facet_wrap(~UploadMonth)
+
+
+#ggsave("../Outputs/TestResultsMonthly.png")
+
+```
+
+```{r}
+ProcessCities <- All_test %>%
+  select(processedByEntity.city)%>%
+  group_by(processedByEntity.city)%>%
+  count()
+ProcessCities
+```
+```{r}
+ggplot(ProcessCities, aes(x = processedByEntity.city, y = n))+
+  geom_col()+
+  labs(title = "Number of Test Processed by City", x = "Cities", y = "Numer of Test Processed")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90, vjust  =  0.1, size = 5))
+
+#ggsave("../Outputs/ProcssCity.png")
+```
+```{r}
+OrderCities <- All_test %>%
+  select(orderedByEntity.city)%>%
+  group_by(orderedByEntity.city)%>%
+  count()
+OrderCities
+```
+```{r}
+ggplot(OrderCities, aes(x = orderedByEntity.city, y = n))+
+  geom_col()+
+  labs(title = "Number of Test Ordered by City", x = "Cities", y = "Numer of Test Ordered")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90, vjust  =  0.1, size = 5))
+
+#ggsave("../Outputs/OrdCity.png")
+```
+
+```{r}
+PatCities <- All_test %>%
+  select(patient.address.city)%>%
+  group_by(patient.address.city)%>%
+  count()%>%
+  arrange(desc(n))
+PatCities
+```
+```{r}
+ggplot(PatCities, aes(x = patient.address.city, y = n))+
+  geom_col()+
+  labs(title = "Number of Test Patient by City", x = "Cities", y = "Numer of Test by City")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90, vjust  =  0.1, size = 3))
+
+#ggsave("../Outputs/PatCity.png")
+```
+
+## Evaluar los rezagos Negativos
+
+```{r}
+NegTat %>%
+  select(orderedByEntity.name, processedByEntity.name)%>%
+  mutate(orderedByEntity.name = as.factor(orderedByEntity.name)) %>%
+  mutate(processedByEntity.name = as.factor(processedByEntity.name))%>%
+  group_by(orderedByEntity.name, processedByEntity.name)%>%
+  count()%>%
+  ggplot(aes(x = processedByEntity.name, y = orderedByEntity.name, fill = as.factor(n)))+
+  geom_tile()+
+  scale_fill_discrete()+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90, size = 7),axis.text.y = element_text(size=7), axis.title = element_text(size = 4), legend.text = element_text(size = 5))
+
+ggsave("../Outputs/RezagosNegBylabs.png", width = 25, height = 25, units = "cm")
+```
+
+```{r}
+CatvCat <- function(Dat, Cat1, Cat2){
+  Dat %>%
+  select(Cat1, Cat2)%>%
+  mutate(Cat1 = as.factor(Cat1)) %>%
+  mutate(Cat2 = as.factor(Cat2))%>%
+  group_by(Cat1, Cat2)%>%
+  count()
+}
+```
+
+
+
+
+
+
+
+
