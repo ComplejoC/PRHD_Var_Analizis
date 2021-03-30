@@ -24,11 +24,6 @@ library(lubridate)
 
 ## Data
 
-```{r}
-Datos1_all<-read.delim("../Data/2021_03_19_Data.csv", header = TRUE, sep = ",", row.names = 1)
-
-head(Datos1_all)
-```
 
 ```{r}
 head(LabTags)
@@ -37,7 +32,7 @@ head(LabTags)
 ## Calculate Variables of interest
 
 ```{r}
-All_test <- testApiToDates(DataFrame = Datos1_all)
+All_test <- testApiToDates(DataFrame = Datos_all)
 
 head(All_test)
 ```
@@ -61,7 +56,7 @@ DataUpBeforeMarch <- All_test %>%
 
 ```{r}
 All_test <- All_test %>%
-  filter(createdAtDate > ymd("2020-03-9"))
+  filter(createdAtDate >= ymd("2020-03-9"))
 ```
 
 ```{r}
@@ -96,7 +91,7 @@ ggplot(IsUpCount, aes(x = isUpdated, y = n))+
   labs(title = "Number of categories in IsUpdated", x = "Categories", y = "Number of test in Category")+
   theme_bw()
 
-ggsave("../Outputs/Iscount.png")
+#ggsave("../Outputs/Iscount.png")
 ```
 
 
@@ -114,7 +109,7 @@ ggplot(IsElecCount, aes(x = isElectronic, y = n))+
   geom_col()+
   labs(title = "Number of categories in IsElectronic", x = "Categories", y = "Number of test in Category")+
   theme_bw()
-ggsave("../Outputs/IsElect.png")
+#ggsave("../Outputs/IsElect.png")
 ```
 
 ```{r}
@@ -132,7 +127,7 @@ ggplot(TestTypeCount, aes(x = testType, y = log(n), fill = testType))+
   theme_bw()+
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
 
-ggsave("../Outputs/TestTypeGlob.png")
+#ggsave("../Outputs/TestTypeGlob.png")
 ```
 
 
@@ -151,7 +146,7 @@ ggplot(TestTypeCountMonthly, aes(x = testType, y = log(n), fill = testType))+
   theme_bw()+
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5), axis.title.y = element_text(size = 8.5))+
   facet_wrap(~UploadMonth)
-ggsave("../Outputs/TestTypeMonthly.png")
+#ggsave("../Outputs/TestTypeMonthly.png")
 ```
 
 ```{r}
@@ -168,7 +163,7 @@ ResultTags
 ```
 
 ```{r}
-write.csv(ResultTags, "../Outputs/ResultTags.csv")
+#write.csv(ResultTags, "../Outputs/ResultTags.csv")
 ```
 
 
@@ -186,7 +181,7 @@ ggplot(ResultCount, aes(x = orderResult.result, y = log(n), fill = orderResult.r
   theme_bw()+
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5), axis.title = element_text(size = 5.9), plot.title = element_text(size = 12), legend.key.size = unit(.2, 'cm'), legend.text = element_text(size =5.6))
 
-ggsave("../Outputs/TestResults.png")
+#ggsave("../Outputs/TestResults.png")
 ```
 
 ```{r}
@@ -227,6 +222,17 @@ ProcessCities <- All_test %>%
   count()
 ProcessCities
 ```
+
+```{r}
+ProcessedCitiesNA <- All_test %>%
+  filter(is.na(processedByEntity.city))
+
+ProcessedCitiesNA
+
+#write.csv(ProcessedCitiesNA, file = "../EmptyProcessByCiti.csv")
+```
+
+
 ```{r}
 ggplot(ProcessCities, aes(x = processedByEntity.city, y = n))+
   geom_col()+
@@ -236,6 +242,7 @@ ggplot(ProcessCities, aes(x = processedByEntity.city, y = n))+
 
 #ggsave("../Outputs/ProcssCity.png")
 ```
+
 ```{r}
 OrderCities <- All_test %>%
   select(orderedByEntity.city)%>%
@@ -243,6 +250,16 @@ OrderCities <- All_test %>%
   count()
 OrderCities
 ```
+
+```{r}
+OrderCitiesNA <- All_test %>%
+  filter(is.na(orderedByEntity.city))
+
+OrderCitiesNA
+
+#write.csv(OrderCitiesNA, file = "../EmptyOrderByCity.csv" )
+```
+
 ```{r}
 ggplot(OrderCities, aes(x = orderedByEntity.city, y = n))+
   geom_col()+
@@ -251,6 +268,14 @@ ggplot(OrderCities, aes(x = orderedByEntity.city, y = n))+
   theme(axis.text.x = element_text(angle = 90, vjust  =  0.1, size = 5))
 
 #ggsave("../Outputs/OrdCity.png")
+```
+```{r}
+PatientCitiesNA <- All_test %>%
+  filter(is.na(patient.address.city))
+
+PatientCitiesNA
+
+#write.csv(PatientCitiesNA, file = "../EmptyPatientCity.csv" )
 ```
 
 ```{r}
@@ -261,6 +286,7 @@ PatCities <- All_test %>%
   arrange(desc(n))
 PatCities
 ```
+
 ```{r}
 ggplot(PatCities, aes(x = patient.address.city, y = n))+
   geom_col()+
@@ -286,24 +312,38 @@ NegTat %>%
   theme_bw()+
   theme(axis.text.x = element_text(angle = 90, size = 7),axis.text.y = element_text(size=7), axis.title = element_text(size = 4), legend.text = element_text(size = 5))
 
-ggsave("../Outputs/RezagosNegBylabs.png", width = 25, height = 25, units = "cm")
+#ggsave("../Outputs/RezagosNegBylabs.png", width = 25, height = 25, units = "cm")
+```
+
+## NAs Cities
+
+```{r}
+NACitiesTot<-All_test%>%
+  dplyr::select(orderedByEntity.name, processedByEntity.name, patient.address.city, orderedByEntity.city, processedByEntity.city)%>%
+  group_by(orderedByEntity.name, processedByEntity.name, patient.address.city,orderedByEntity.city,processedByEntity.city)%>%
+  count()%>%
+  ungroup()%>%
+  group_by(orderedByEntity.name,processedByEntity.name)%>%
+  summarise(FreqNaPatient = sum(is.na(patient.address.city)),FreqNaOrder = sum(is.na(orderedByEntity.city)),FreqNaProcessed = sum(is.na(processedByEntity.city)), N = sum(n))%>%
+  ungroup()%>%
+  group_by(orderedByEntity.name,processedByEntity.name,FreqNaPatient,FreqNaOrder,FreqNaProcessed ,N)%>%
+  summarise(RowSum = sum(FreqNaPatient,FreqNaOrder,FreqNaProcessed))%>%
+  filter(RowSum>0) %>%
+  ungroup()%>%
+  group_by(orderedByEntity.name,processedByEntity.name, FreqNaPatient,FreqNaOrder,FreqNaProcessed,RowSum,N)%>%
+  summarise(Per = (RowSum/N)*100)%>%
+  arrange(desc(Per))
+
+NACitiesTot
 ```
 
 ```{r}
-CatvCat <- function(Dat, Cat1, Cat2){
-  Dat %>%
-  select(Cat1, Cat2)%>%
-  mutate(Cat1 = as.factor(Cat1)) %>%
-  mutate(Cat2 = as.factor(Cat2))%>%
-  group_by(Cat1, Cat2)%>%
-  count()
-}
+NACitiesTot %>%
+  select(processedByEntity.name,FreqNaPatient,FreqNaOrder,FreqNaProcessed)%>%
+  pivot_longer(cols = c(FreqNaPatient,FreqNaOrder,FreqNaProcessed))%>%
+  ggplot(aes(x= name, y = value))+
+  geom_col()+
+  labs(title = "Frequency of NAs in city columns", y = "Frequency", x = "Category")+
+  theme_bw()
 ```
-
-
-
-
-
-
-
 

@@ -25,11 +25,7 @@ library(lubridate)
 
 ## Data
 
-```{r}
-Datos1_all<-read.delim("../Data/2021_02_17_Data.csv", header = TRUE, sep = ",", row.names = 1)
 
-head(Datos1_all)
-```
 
 ```{r}
 head(LabTags)
@@ -38,7 +34,7 @@ head(LabTags)
 ## Calculate Variables of interest
 
 ```{r}
-All_test <- testApiToDates(DataFrame = Datos1_all)
+All_test <- testApiToDates(DataFrame = Datos_all)
 
 head(All_test)
 ```
@@ -65,7 +61,7 @@ All_test <- All_test %>%
 
 ```{r}
 All_test <- All_test %>%
-  filter(as.numeric(TatUploadSample) > 0)
+  filter(as.numeric(TatUploadSample) >= 0)
 ```
 
 
@@ -80,7 +76,8 @@ colnames(All_test)
 
 ```{r}
 TatsUpload <- All_test %>%
-  select(processedByEntity.name,TatReportSample,TatUploadReport, TatUploadSample, createdAtDate) %>%
+  select(orderId,patient.patientId,processedByEntity.name,TatReportSample,TatUploadReport, TatUploadSample, createdAtDate) %>%
+  mutate(CreatedYear = year(createdAtDate))%>%
   mutate(createdAtDate = month(createdAtDate, label = TRUE))%>%
   mutate(TatReportSample = as.numeric(TatReportSample)) %>%
   mutate(TatUploadReport = as.numeric(TatUploadReport)) %>%
@@ -97,10 +94,10 @@ TatsUpload
 
 ```{r}
  for(i in 1:length(LabTags$Nombre)){
-     TatsUpload[TatsUpload$processedByEntity.name %in% LabTags[i,1],6] <- LabTags[i,3]
+     TatsUpload[TatsUpload$processedByEntity.name %in% LabTags[i,1],9] <- LabTags[i,3]
  }
 
-TatsUpload[!(TatsUpload$processedByEntity.name %in% LabTags[,1]),6] <-"Other"
+TatsUpload[!(TatsUpload$processedByEntity.name %in% LabTags[,1]),9] <-"Other"
 
 TatsUpload
 ```
@@ -117,6 +114,7 @@ TatsUpload %>%
   group_by(Tags)%>%
   filter(TatReportSample < 360)%>%
   filter(TatReportSample > 0)%>%
+  filter(Tags != "Other")%>%
   summarise(meanN = mean(TatReportSample), SDEN = sd(TatReportSample)/sqrt(length(TatReportSample)))%>%
   ggplot(aes(x = Tags, y = meanN))+
   geom_point()+
@@ -133,6 +131,7 @@ TatsUpload %>%
   group_by(Tags)%>%
   filter(TatReportSample < 360)%>%
   filter(TatReportSample > 0)%>%
+  filter(Tags != "Other")%>%
   summarise(meanN = mean(TatReportSample), SDEN = sd(TatReportSample))%>%
   ggplot(aes(x = Tags, y = meanN))+
   geom_point()+
@@ -150,6 +149,7 @@ TatsUpload %>%
   group_by(Tags, createdAtDate)%>%
   filter(TatReportSample < 360)%>%
   filter(TatReportSample > 0)%>%
+  filter(Tags != "Other")%>%
   summarise(meanN = mean(TatReportSample), SDEN = sd(TatReportSample)/sqrt(length(TatReportSample)))%>%
   ggplot(aes(x = Tags, y = meanN))+
   geom_point()+
@@ -167,6 +167,7 @@ TatsUpload %>%
   group_by(Tags, createdAtDate)%>%
   filter(TatReportSample < 360)%>%
   filter(TatReportSample > 0)%>%
+  filter(Tags != "Other")%>%
   summarise(meanN = mean(TatReportSample), SDEN = sd(TatReportSample))%>%
   ggplot(aes(x = Tags, y = meanN))+
   geom_point()+
@@ -180,10 +181,28 @@ TatsUpload %>%
 
 ```{r}
 TatsUpload %>%
+  select(Tags, TatReportSample, createdAtDate, CreatedYear)%>%
+  group_by(Tags,createdAtDate,CreatedYear)%>%
+  filter(TatReportSample < 360)%>%
+  filter(TatReportSample > 0)%>%
+  filter(Tags != "Other")%>%
+  summarise(n = n(), MeanTat = mean(TatReportSample))%>%
+  ggplot(aes(x = Tags, y = MeanTat, size = n))+
+  geom_point()+
+  labs(y = "Mean Lags", x = "Lab Tags", title = "Lag Between Data Sampled and Date Reported")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90, vjust  =  0.1))+
+  facet_wrap(~paste(createdAtDate,CreatedYear ))
+
+```
+
+```{r}
+TatsUpload %>%
   select(Tags, TatUploadReport)%>%
   group_by(Tags)%>%
   filter(TatUploadReport < 360)%>%
   filter(TatUploadReport > 0)%>%
+  filter(Tags != "Other")%>%
   summarise(meanN = mean(TatUploadReport), SDEN = sd(TatUploadReport)/sqrt(length(TatUploadReport)))%>%
   ggplot(aes(x = Tags, y = meanN))+
   geom_point()+
@@ -194,12 +213,16 @@ TatsUpload %>%
 
 ```
 
+
+
+
 ```{r}
 TatsUpload %>%
   select(Tags, TatUploadReport)%>%
   group_by(Tags)%>%
   filter(TatUploadReport < 360)%>%
   filter(TatUploadReport > 0)%>%
+  filter(Tags != "Other")%>%
   summarise(meanN = mean(TatUploadReport), SDEN = sd(TatUploadReport))%>%
   ggplot(aes(x = Tags, y = meanN))+
   geom_point()+
@@ -216,6 +239,7 @@ TatsUpload %>%
   group_by(Tags, createdAtDate)%>%
   filter(TatUploadReport < 360)%>%
   filter(TatUploadReport > 0)%>%
+  filter(Tags != "Other")%>%
   summarise(meanN = mean(TatUploadReport), SDEN = sd(TatUploadReport)/sqrt(length(TatUploadReport)))%>%
   ggplot(aes(x = Tags, y = meanN))+
   geom_point()+
@@ -233,6 +257,7 @@ TatsUpload %>%
   group_by(Tags, createdAtDate)%>%
   filter(TatUploadReport < 360)%>%
   filter(TatUploadReport > 0)%>%
+  filter(Tags != "Other")%>%
   summarise(meanN = mean(TatUploadReport), SDEN = sd(TatUploadReport))%>%
   ggplot(aes(x = Tags, y = meanN))+
   geom_point()+
@@ -243,10 +268,31 @@ TatsUpload %>%
   facet_wrap(~createdAtDate)
 
 ```
+
+```{r}
+TatsUpload %>%
+  select(Tags, TatUploadReport, createdAtDate, CreatedYear)%>%
+  group_by(Tags, createdAtDate)%>%
+  filter(TatUploadReport < 360)%>%
+  filter(TatUploadReport > 0)%>%
+  filter(Tags != "Other")%>%
+  summarise(n = n(), MeanTat = mean(TatUploadReport))%>%
+  ggplot(aes(x = Tags, y = MeanTat, size = n))+
+  geom_point()+
+  labs(y = "Tat Freq", x = "Lab Tags", title = "Lag Between Date Reported and Date Uploaded")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90,vjust  =  0.1))+
+  facet_wrap(~createdAtDate)
+
+```
+
+
 ## NA analysis
 
 ```{r}
 ResagoVacio<-TatsUpload[which(is.na(TatsUpload$TatReportSample)),]
+
+#write.csv(ResagoVacio, file = "../ResagosVacios.csv")
 ```
 
 
