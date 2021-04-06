@@ -1,0 +1,212 @@
+---
+title: "PILAS Reporte Mensual"
+author: "Sofía Meléndez Cartagena"
+date: "4/6/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+ 
+```{r,include=FALSE,Libraries}
+library(tidyverse)
+library(PilasPack)
+library(lubridate)
+```
+
+```{r, datos}
+
+```
+
+```{r, include=FALSE}
+All_test <- testApiToDates(DataFrame = Datos_all)
+
+```
+
+```{r, include=FALSE}
+All_test <- testApiCalculateTurnaround(All_test)
+
+```
+
+```{r, include=FALSE}
+All_test <- testApiMonthAsColumn(All_test)
+
+```
+
+```{r, include=FALSE}
+DataUpBeforeMarch <- All_test %>%
+  filter(createdAtDate < ymd("2020-03-9"))
+```
+
+```{r, include=FALSE}
+All_test <- All_test %>%
+  filter(createdAtDate >= ymd("2020-03-9"))
+```
+
+```{r, include=FALSE}
+NegTat <- All_test %>%
+  filter(as.numeric(TatUploadSample) < 0)
+```
+
+```{r, include=FALSE}
+All_test <- All_test %>%
+  filter(as.numeric(TatUploadSample) > 0)
+```
+
+```{r, include=FALSE, Isolate Numerical Variables}
+TatsUpload <- All_test %>%
+  select(orderId,patient.patientId,processedByEntity.name,TatReportSample,TatUploadReport, TatUploadSample, createdAtDate) %>%
+  mutate(CreatedYear = year(createdAtDate))%>%
+  mutate(createdAtDate = month(createdAtDate, label = TRUE))%>%
+  mutate(TatReportSample = as.numeric(TatReportSample)) %>%
+  mutate(TatUploadReport = as.numeric(TatUploadReport)) %>%
+  mutate(TatUploadSample = as.numeric(TatUploadSample)) %>%
+  add_column(Tags = "NA")%>%
+  mutate(Tags = as.character(Tags))
+
+TatsUpload
+```
+
+
+```{r}
+ for(i in 1:length(LabTags$Nombre)){
+     TatsUpload[TatsUpload$processedByEntity.name %in% LabTags[i,1],9] <- LabTags[i,3]
+ }
+
+TatsUpload[!(TatsUpload$processedByEntity.name %in% LabTags[,1]),9] <-"Other"
+
+TatsUpload
+```
+
+## Analizis de Errores
+
+
+
+
+## Analizis de Rezagos
+
+```{r, echo=FALSE, lag promedio y desviacion estandar global}
+TatsUpload %>%
+  select(Tags, TatReportSample)%>%
+  group_by(Tags)%>%
+  filter(TatReportSample < 360)%>%
+  filter(TatReportSample > 0)%>%
+  filter(Tags != "Other")%>%
+  summarise(meanN = mean(TatReportSample), SDEN = sd(TatReportSample))%>%
+  ggplot(aes(x = Tags, y = meanN))+
+  geom_point()+
+  geom_errorbar(aes(ymin= meanN-SDEN, ymax=meanN+SDEN))+
+  labs(y = "Mean Lags + SD", x = "Lab Tags", title = "Lag Between Date Sampled and Date Reported")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90, vjust  =  0.1))
+
+```
+
+```{r, echo=FALSE, promedio y desviacion estandar mensual}
+TatsUpload %>%
+  select(Tags, TatReportSample, createdAtDate)%>%
+  group_by(Tags, createdAtDate)%>%
+  filter(TatReportSample < 360)%>%
+  filter(TatReportSample > 0)%>%
+  filter(Tags != "Other")%>%
+  summarise(meanN = mean(TatReportSample), SDEN = sd(TatReportSample))%>%
+  ggplot(aes(x = Tags, y = meanN))+
+  geom_point()+
+  geom_errorbar(aes(ymin= meanN-SDEN, ymax=meanN+SDEN))+
+  labs(y = "Mean Lags + SD", x = "Lab Tags", title = "Lag Between Date Sampled and Date Reported")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90, vjust  =  0.1))+
+  facet_wrap(~createdAtDate)
+
+```
+
+```{r, echo=FALSE,promedio vs volumen mensual }
+TatsUpload %>%
+  select(Tags, TatReportSample, createdAtDate, CreatedYear)%>%
+  group_by(Tags,createdAtDate,CreatedYear)%>%
+  filter(TatReportSample < 360)%>%
+  filter(TatReportSample > 0)%>%
+  filter(Tags != "Other")%>%
+  summarise(n = n(), MeanTat = mean(TatReportSample))%>%
+  ggplot(aes(x = Tags, y = MeanTat, size = n))+
+  geom_point()+
+  labs(y = "Mean Lags", x = "Lab Tags", title = "Lag Between Data Sampled and Date Reported")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90, vjust  =  0.1))+
+  facet_wrap(~paste(createdAtDate,CreatedYear ))
+
+```
+
+```{r, echo=FALSE, Promedio Desviacion estandar global}
+TatsUpload %>%
+  select(Tags, TatUploadReport)%>%
+  group_by(Tags)%>%
+  filter(TatUploadReport < 360)%>%
+  filter(TatUploadReport > 0)%>%
+  filter(Tags != "Other")%>%
+  summarise(meanN = mean(TatUploadReport), SDEN = sd(TatUploadReport))%>%
+  ggplot(aes(x = Tags, y = meanN))+
+  geom_point()+
+  geom_errorbar(aes(ymin= meanN-SDEN, ymax=meanN+SDEN))+
+  labs(y = "Mean Lags + SD", x = "Lab Tags", title = "Lag Between Date Reported and Date Upload")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90,vjust  =  0.1))
+
+```
+
+```{r,echo=FALSE,promedio desviacion estandar mensual}
+TatsUpload %>%
+  select(Tags, TatUploadReport, createdAtDate)%>%
+  group_by(Tags, createdAtDate)%>%
+  filter(TatUploadReport < 360)%>%
+  filter(TatUploadReport > 0)%>%
+  filter(Tags != "Other")%>%
+  summarise(meanN = mean(TatUploadReport), SDEN = sd(TatUploadReport))%>%
+  ggplot(aes(x = Tags, y = meanN))+
+  geom_point()+
+  geom_errorbar(aes(ymin= meanN-SDEN, ymax=meanN+SDEN))+
+  labs(y = "Mean Lags + SD", x = "Lab Tags", title = "Lag Between Date Sampled and Date Reported")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90,vjust  =  0.1))+
+  facet_wrap(~createdAtDate)
+
+```
+
+```{r, echo=FALSE, volumen vs promedio mensual}
+TatsUpload %>%
+  select(Tags, TatUploadReport, createdAtDate, CreatedYear)%>%
+  group_by(Tags, createdAtDate)%>%
+  filter(TatUploadReport < 360)%>%
+  filter(TatUploadReport > 0)%>%
+  filter(Tags != "Other")%>%
+  summarise(n = n(), MeanTat = mean(TatUploadReport))%>%
+  ggplot(aes(x = Tags, y = MeanTat, size = n))+
+  geom_point()+
+  labs(y = "Tat Freq", x = "Lab Tags", title = "Lag Between Date Reported and Date Uploaded")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90,vjust  =  0.1))+
+  facet_wrap(~createdAtDate)
+
+```
+
+<!-- Añade el codigo para llegar a esta grafica -->
+
+```{r}
+ggplot(samps, aes(x = sampleCollectedDate, y = NumberOfSamples))+
+  geom_line(aes(col = "Samples"))+
+  geom_line( aes(x = logs$createdAtDate,y= logs$NumberOflogs, col = "Logs"))+
+  labs(title = "Volumen Muestreado vs Procesado a Traves del Tiempo", y = "Volumen", x = "Meses")+
+  theme_bw()
+  
+```
+
+
+
+
+
+
+
+
+
