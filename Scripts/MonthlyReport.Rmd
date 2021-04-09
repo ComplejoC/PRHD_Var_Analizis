@@ -57,7 +57,7 @@ All_test <- All_test %>%
 
 ```{r, include=FALSE, Isolate Numerical Variables}
 TatsUpload <- All_test %>%
-  select(orderId,patient.patientId,processedByEntity.name,TatReportSample,TatUploadReport, TatUploadSample, createdAtDate) %>%
+  select(sampleCollectedDate,processedByEntity.name,TatReportSample,TatUploadReport, TatUploadSample, createdAtDate) %>%
   mutate(CreatedYear = year(createdAtDate))%>%
   mutate(createdAtDate = month(createdAtDate, label = TRUE))%>%
   mutate(TatReportSample = as.numeric(TatReportSample)) %>%
@@ -72,10 +72,10 @@ TatsUpload
 
 ```{r}
  for(i in 1:length(LabTags$Nombre)){
-     TatsUpload[TatsUpload$processedByEntity.name %in% LabTags[i,1],9] <- LabTags[i,3]
+     TatsUpload[TatsUpload$processedByEntity.name %in% LabTags[i,1],7] <- LabTags[i,3]
  }
 
-TatsUpload[!(TatsUpload$processedByEntity.name %in% LabTags[,1]),9] <-"Other"
+TatsUpload[!(TatsUpload$processedByEntity.name %in% LabTags[,1]),7] <-"Other"
 
 TatsUpload
 ```
@@ -202,8 +202,59 @@ ggplot(samps, aes(x = sampleCollectedDate, y = NumberOfSamples))+
   
 ```
 
+```{r, echo=FALSE}
+TatsUpload %>%
+  select(createdAtDate, TatUploadReport)%>%
+  group_by(createdAtDate)%>%
+  mutate(TatUploadReport = as.numeric(TatUploadReport))%>%
+  filter(TatUploadReport >= 0)%>%
+  ggplot(aes(x = createdAtDate, y = TatUploadReport))+
+  geom_boxplot(outlier.alpha = 0.5,outlier.colour = "red")+
+  labs(y = "Lag", x = "Weeks", title = "Lag Distribution From Reported to Upload", subtitle = "Outliers in Red")+
+  theme_bw()
 
+```
 
+```{r, echo=FALSE}
+TatsUpload %>%
+  select(sampleCollectedDate, TatUploadReport)%>%
+  group_by(sampleCollectedDate)%>%
+  mutate(TatUploadReport = as.numeric(TatUploadReport))%>%
+  filter(TatUploadReport >= 0)%>%
+  ggplot(aes(x = sampleCollectedDate, y = TatUploadReport))+
+  geom_boxplot(outlier.alpha = 0.5,outlier.colour = "red")+
+  labs(y = "Lag", x = "Weeks", title = "Lag Distribution From Reported to Upload", subtitle = "Outliers in Red")+
+  theme_bw()
+
+```
+
+```{r, echo=FALSE}
+TatsUpload %>%
+  select(createdAtDate, TatUploadReport)%>%
+  group_by(createdAtDate)%>%
+  mutate(TatUploadReport = as.numeric(TatUploadReport))%>%
+  filter(TatUploadReport >= 0)%>%
+  ggplot(aes(x = createdAtDate, y = TatUploadReport))+
+  geom_boxplot(outlier.alpha = 0.5,outlier.colour = "red")+
+  labs(y = "Lag", x = "Weeks", title = "Lag Distribution From Reported to Upload", subtitle = "Outliers in Red")+
+  theme_bw()%>%
+  facet_wrap(~month(orderResult))
+
+```
+
+```{r, echo=FALSE}
+TatsUpload %>%
+  select(sampleCollectedDate, TatUploadReport)%>%
+  group_by(sampleCollectedDate)%>%
+  mutate(TatUploadReport = as.numeric(TatUploadReport))%>%
+  filter(TatUploadReport >= 0)%>%
+  ggplot(aes(x = sampleCollectedDate, y = TatUploadReport))+
+  geom_boxplot(outlier.alpha = 0.5,outlier.colour = "red")+
+  labs(y = "Lag", x = "Weeks", title = "Lag Distribution From Reported to Upload", subtitle = "Outliers in Red")+
+  theme_bw()%>%
+  facet_wrap(~month(sampleCollectedDate))
+
+```
 
 
 
